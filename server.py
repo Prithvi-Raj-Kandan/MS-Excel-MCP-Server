@@ -15,12 +15,11 @@ def read_excel() -> dict:
     """
     try:
         app = xw.App(visible=True, add_book=False)
-        book = app.books.open(r"C:\Users\PRITHVI RAJ\Downloads\Data-for-Practice.xlsx")
+        book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
         sheet = book.sheets[0]
         
         # Get all data including headers
         data = sheet.used_range.value
-        book.save()
         
         if not data or len(data) < 2:
             return {"error": "No data found in Excel file"}
@@ -51,15 +50,13 @@ def write_excel(data: dict) -> str:
     try:
         if xw.apps:
             app = xw.apps.active
-            book = app.books.open(r"C:\Users\PRITHVI RAJ\Downloads\Data-for-Practice.xlsx")
+            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
             sheet = book.sheets[0]
         else:
             # Open Excel (it will be visible by default)
             app = xw.App(visible=True, add_book=False)
-            book = app.books.open(r"C:\Users\PRITHVI RAJ\Downloads\Data-for-Practice.xlsx")
+            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
             sheet = book.sheets[0]
-
-        sheet.clear()
         
         # Check if it's tabular data (dict with lists as values)
         if data and isinstance(next(iter(data.values())), list):
@@ -72,6 +69,8 @@ def write_excel(data: dict) -> str:
         else:
             # Simple dict
             sheet.range('A1').value = list(data.items())
+
+        sheet.autofit()    
         
         return json.dumps({
             "status": "success",
@@ -96,7 +95,7 @@ def save_excel() -> str:
         app_excel = xw.apps.active  # Connect to running Excel instance
         book = None
         for wb in app_excel.books:
-            if wb.fullname == (r"C:\Users\PRITHVI RAJ\Downloads\Data-for-Practice.xlsx"):
+            if wb.fullname == (r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx"):
                 book = wb
                 break
 
@@ -129,7 +128,7 @@ def discard_changes() -> str:
         app_excel = xw.apps.active
         book = None
         for wb in app_excel.books:
-            if wb.fullname == (r"C:\Users\PRITHVI RAJ\Downloads\Data-for-Practice.xlsx"):
+            if wb.fullname == (r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx"):
                 book = wb
                 break
 
@@ -165,18 +164,19 @@ def apply_formula(formula: str, cell: str) -> str:
     try:
         if xw.apps:
             app = xw.apps.active
-            book = app.books.open(r"C:\Users\PRITHVI RAJ\Downloads\Data-for-Practice.xlsx")
+            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
             sheet = book.sheets[0]
         else:
             # Open Excel (it will be visible by default)
             app = xw.App(visible=True, add_book=False)
-            book = app.books.open(r"C:\Users\PRITHVI RAJ\Downloads\Data-for-Practice.xlsx")
+            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
             sheet = book.sheets[0]
         
         # Apply the formula to the specified cell
         sheet.range(cell).formula = formula
-
-    
+        
+        sheet.autofit()
+            
         return json.dumps({
             "status": "success",
             "message": "Formula {formula} applied to cell {cell} successfully. Review the file and confirm if you want to save.",
