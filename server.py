@@ -9,81 +9,74 @@ print("Excel MCP Server starting...", file=sys.stderr)
 @mcp.tool()
 def read_excel() -> dict:
     """
-    Read data from the Excel file.
+    Reads sheet as a full 2D matrix preserving blank cells storing it as a nested list eg: [["Date","Sales Rep","Shift","Cost Price","Selling Price","Profit","Profit%","Commission","Weekday"], ["","ABC","Day",9845,9855,10,"","",""], ["","ABC","Day",9845,9855,10,"","",""],["","ABC","Day",9845,9855,10,"","",""],["","ABC","Day",9845,9855,10,"","",""],["","ABC","Day",9845,9855,10,"","",""]]
     Returns:
-        dict: Data from the Excel file in dictionary format.
+        dict: A dictionary containing the status, the nested list matrix of cell values, and the used range address.
     """
-    try:
-        app = xw.App(visible=True, add_book=False)
-        book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
-        sheet = book.sheets[0]
-        
-        # Get all data including headers
-        data = sheet.used_range.value
-        
-        if not data or len(data) < 2:
-            return {"error": "No data found in Excel file"}
-        
-        # Convert to dict format with headers as keys
-        headers = data[0]
-        rows = data[1:]
-        result = {header: [row[i] for row in rows] for i, header in enumerate(headers)}
-        
-        book.close()
-        app.quit()
-        return result
-        
-    except Exception as e:
-        return {"error": f"Error reading Excel: {str(e)}"}
 
-@mcp.tool()
-def write_excel(data: dict) -> str:
-    """
-    Write data to an Excel file.
-    Args:
-        data (dict): Data to write to Excel. Can be:
-            - Simple dict: {"key": "value"}
-            - Tabular dict: {"Column1": [val1, val2], "Column2": [val1, val2]}
-    Returns:
-        str: Confirmation message of successful write operation.
-    """
+    file_path = r"C:\Users\PRITHVI RAJ\MS Excel MCP\Data-for-Practice.xlsx"
+
     try:
         if xw.apps:
             app = xw.apps.active
-            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
+            book = app.books.open(file_path)
             sheet = book.sheets[0]
         else:
             # Open Excel (it will be visible by default)
             app = xw.App(visible=True, add_book=False)
-            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
+            book = app.books.open(file_path)
             sheet = book.sheets[0]
-        
-        # Check if it's tabular data (dict with lists as values)
-        if data and isinstance(next(iter(data.values())), list):
-            # Convert to list of lists format for xlwings
-            headers = list(data.keys())
-            values = list(data.values())
-            # Transpose: zip creates rows from columns
-            rows = [headers] + list(zip(*values))
-            sheet.range('A1').value = rows
-        else:
-            # Simple dict
-            sheet.range('A1').value = list(data.items())
 
-        sheet.autofit()    
+        used = sheet.used_range
+        used_address = used.address
+        values = sheet.range(used.address).value  # Nested list with blanks preserved
         
-        return json.dumps({
+        book.close()
+        app.quit()
+
+        return {
             "status": "success",
-            "message": "Data written to Excel. Review the file and confirm if you want to save.",
-            "next_action": "Call 'save_excel' tool if user confirms save or Call 'discard_changes' tool to discard changes if user confirms not to save or Continue with other instructions as given by the user."
+            "matrix": values,
+            "range": used_address
+        }
+
+    except Exception as e:
+        return json.dumps({"status": "error", "message": str(e)})
+
+@mcp.tool()
+def write_excel(matrix: list, used_address: str) -> str:
+    """
+    Overwrites entire used-range with updated matrix (a nested list of the values of cells in the used range).
+    Args:
+        matrix (list): a nested list of the values of cells in the used range. eg: [["Date","Sales Rep","Shift","Cost Price","Selling Price","Profit","Profit%","Commission","Weekday"], ["","ABC","Day",9845,9855,10,"","",""], ["","ABC","Day",9845,9855,10,"","",""],["","ABC","Day",9845,9855,10,"","",""],["","ABC","Day",9845,9855,10,"","",""],["","ABC","Day",9845,9855,10,"","",""]]
+        used(str): Used range of the sheet.
+    Returns:    
+        str: Confirmation message of successful write operation.
+    """
+
+    file_path = r"C:\Users\PRITHVI RAJ\MS Excel MCP\Data-for-Practice.xlsx"
+    try:
+       if xw.apps:
+            app = xw.apps.active
+            book = app.books.open(file_path)
+            sheet = book.sheets[0]
+       else:
+            # Open Excel (it will be visible by default)
+            app = xw.App(visible=True, add_book=False)
+            book = app.books.open(file_path)
+            sheet = book.sheets[0]
+
+        # Clear then rewrite
+       sheet.range(used_address).value = matrix
+
+       return json.dumps({
+            "status": "success",
+            "message": "Full range rewritten. Review & save."
         })
 
     except Exception as e:
-        return json.dumps({
-            "status": "error",
-            "message": str(e)
-        })
-    
+        return json.dumps({"status": "error", "message": str(e)})
+   
 @mcp.tool()    
 def save_excel() -> str:
     """
@@ -95,7 +88,7 @@ def save_excel() -> str:
         app_excel = xw.apps.active  # Connect to running Excel instance
         book = None
         for wb in app_excel.books:
-            if wb.fullname == (r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx"):
+            if wb.fullname == (r"C:\Users\PRITHVI RAJ\MS Excel MCP\Data-for-Practice.xlsx"):
                 book = wb
                 break
 
@@ -128,7 +121,7 @@ def discard_changes() -> str:
         app_excel = xw.apps.active
         book = None
         for wb in app_excel.books:
-            if wb.fullname == (r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx"):
+            if wb.fullname == (r"C:\Users\PRITHVI RAJ\MS Excel MCP\Data-for-Practice.xlsx"):
                 book = wb
                 break
 
@@ -138,7 +131,7 @@ def discard_changes() -> str:
                 "message": "No open workbook found."
             })
 
-        book.close(save=False)
+        book.close()
         app_excel.quit()
 
         return json.dumps({
@@ -152,31 +145,31 @@ def discard_changes() -> str:
         })
     
 @mcp.tool()
-def apply_formula(formula: str, cell: str) -> str:
+def apply_formula(formula: str, cell: str, data_range: str) -> str:
     """
-    Apply a formula to a specific cell in the Excel file.
+    Apply a formula to a specific cell in the Excel file.Determine the address of the cell based on user input.
     Args:
         formula (str): The formula to apply (e.g., '=SUM(A1:A10)').
-        cell (str): The cell address where the formula should be applied (e.g., "A11").
+        cell (str): The cell address where the formula should be applied (e.g., "A11").The cell address should be within the provided data range.
+        data_range (str): The range in Excel where data should be written (e.g., "A1" or "B4:K90").
     Returns:
         str: Confirmation message after applying the formula.
     """
     try:
         if xw.apps:
             app = xw.apps.active
-            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
+            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Data-for-Practice.xlsx")
             sheet = book.sheets[0]
         else:
             # Open Excel (it will be visible by default)
             app = xw.App(visible=True, add_book=False)
-            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Trail Book.xlsx")
+            book = app.books.open(r"C:\Users\PRITHVI RAJ\MS Excel MCP\Data-for-Practice.xlsx")
             sheet = book.sheets[0]
         
         # Apply the formula to the specified cell
         sheet.range(cell).formula = formula
-        
-        sheet.autofit()
-            
+
+    
         return json.dumps({
             "status": "success",
             "message": "Formula {formula} applied to cell {cell} successfully. Review the file and confirm if you want to save.",
